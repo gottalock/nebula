@@ -167,6 +167,92 @@ const UI = {
 /* ============================================================
    NEBULA — a constelação (editável ou somente leitura)
    ============================================================ */
+/* ---------- player do Spotify integrado ao tema ---------- */
+function SpotifyDock({ embed, playing }) {
+  const boxRef = useRef(null);
+  const ctrlRef = useRef(null);
+  // https://open.spotify.com/embed/track/ID -> spotify:track:ID
+  const m = /embed\/(track|album|playlist|artist|episode|show)\/([A-Za-z0-9]+)/.exec(embed || "");
+  const uri = m ? `spotify:${m[1]}:${m[2]}` : null;
+
+  useEffect(() => {
+    if (!uri) return;
+    let dead = false;
+    const ensureApi = () =>
+      new Promise((res) => {
+        if (window.SpotifyIframeApi) return res(window.SpotifyIframeApi);
+        const prev = window.onSpotifyIframeApiReady;
+        window.onSpotifyIframeApiReady = (api) => {
+          window.SpotifyIframeApi = api;
+          if (prev) prev(api);
+          res(api);
+        };
+        if (!document.getElementById("spotify-iframe-api")) {
+          const s = document.createElement("script");
+          s.id = "spotify-iframe-api";
+          s.src = "https://open.spotify.com/embed/iframe-api/v1";
+          s.async = true;
+          document.body.appendChild(s);
+        }
+      });
+    ensureApi().then((api) => {
+      if (dead || !boxRef.current) return;
+      const el = document.createElement("div");
+      boxRef.current.innerHTML = "";
+      boxRef.current.appendChild(el);
+      api.createController(el, { uri, width: "100%", height: 80 }, (ctrl) => {
+        if (dead) { try { ctrl.destroy(); } catch (e) {} return; }
+        ctrlRef.current = ctrl;
+        // tenta tocar já (vale se a pessoa acabou de clicar em algo);
+        // se o navegador barrar, toca no próximo toque em qualquer lugar
+        try { ctrl.play(); } catch (e) {}
+        const kick = () => {
+          try { ctrl.play(); } catch (e) {}
+          document.removeEventListener("pointerdown", kick);
+        };
+        document.addEventListener("pointerdown", kick);
+      });
+    });
+    return () => {
+      dead = true;
+      try { ctrlRef.current && ctrlRef.current.destroy(); } catch (e) {}
+      ctrlRef.current = null;
+    };
+  }, [uri]);
+
+  // mutar = pausar; reativar = retomar
+  useEffect(() => {
+    const c = ctrlRef.current;
+    if (!c) return;
+    try { playing ? c.resume() : c.pause(); } catch (e) {}
+  }, [playing]);
+
+  return (
+    <div style={{
+      position: "fixed", left: 16, bottom: 64, zIndex: 20, width: 300,
+      transition: "opacity .4s ease, transform .4s ease",
+      opacity: playing ? 0.94 : 0,
+      transform: playing ? "none" : "translateY(12px)",
+      pointerEvents: playing ? "auto" : "none",
+    }}>
+      <p style={{
+        margin: "0 0 5px 4px", fontSize: 10, letterSpacing: "0.22em",
+        textTransform: "uppercase", color: "rgba(220,228,255,0.55)",
+        fontFamily: "'Space Grotesk', sans-serif",
+      }}>
+        ♪ som do universo
+      </p>
+      <div ref={boxRef} style={{
+        borderRadius: 16, overflow: "hidden",
+        border: "1px solid rgba(220,228,255,0.16)",
+        boxShadow: "0 0 30px rgba(174,185,255,0.18), 0 10px 34px rgba(0,0,0,0.65)",
+        background: "rgba(3,5,12,0.6)",
+        minHeight: 80,
+      }} />
+    </div>
+  );
+}
+
 /* ---------- zona de arrastar arquivos (imagens/áudio) ---------- */
 function DropZone({ color, accept, label, busy, onFile }) {
   const [over, setOver] = useState(false);
@@ -312,7 +398,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
       a.src = track;
     }
     a.loop = true;
-    a.volume = 0.4;
+    a.volume = 0.08; // volume ambiente bem suave
     a.play().then(() => setNeedsTap(false)).catch(() => setNeedsTap(true));
   }, [track, soundOn, spotTrack]);
   const onSkyPointerDown = (e) => {
@@ -772,17 +858,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
 
       {/* trilha sonora: player invisível + controles */}
       <audio ref={audioRef} style={{ display: "none" }} />
-      {track && spotTrack && soundOn && (
-        <div style={{ position: "fixed", left: 16, bottom: 64, zIndex: 20, animation: "fadeIn .6s ease" }}>
-          <iframe
-            key={spotTrack}
-            src={spotTrack}
-            width="300" height="80" frameBorder="0"
-            allow="encrypted-media; autoplay; clipboard-write"
-            title="Player do Spotify"
-            style={{ borderRadius: 14, display: "block", boxShadow: "0 8px 30px rgba(0,0,0,0.6)" }} />
-        </div>
-      )}
+      {track && spotTrack && <SpotifyDock key={spotTrack} embed={spotTrack} playing={soundOn} />}
       {track && spotTrack && (
         <button
           onClick={() => setSoundOn(!soundOn)}
