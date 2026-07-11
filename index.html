@@ -12,7 +12,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style> html, body { margin: 0; padding: 0; background: #050510; } </style>
+<style> html, body { margin: 0; padding: 0; background: #000104; } </style>
 </head>
 <body>
 <div id="root"></div>
@@ -127,19 +127,19 @@ function Starfield() {
 const UI = {
   root: {
     fontFamily: "'Space Grotesk', sans-serif",
-    background: "radial-gradient(ellipse at 30% 20%, #131335 0%, #0a0b1e 45%, #050510 100%)",
+    background: "radial-gradient(ellipse at 30% 18%, #0a0d19 0%, #04060d 42%, #000104 100%)",
     color: "#EDEDF7", minHeight: "100vh", overflow: "hidden", position: "relative",
   },
   display: { fontFamily: "'Unbounded', sans-serif" },
   btn: {
-    background: "linear-gradient(135deg, #8B7CF7, #5EEAD4)", color: "#050510",
+    background: "linear-gradient(135deg, #F4F6FF, #AEB9FF)", color: "#04060D",
     border: "none", borderRadius: 999, padding: "10px 20px",
     fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 13,
     cursor: "pointer", letterSpacing: "0.04em",
   },
   ghostBtn: {
-    background: "transparent", color: "#B9B3E8",
-    border: "1px solid rgba(139,124,247,0.4)", borderRadius: 999, padding: "9px 18px",
+    background: "transparent", color: "#C3CBE0",
+    border: "1px solid rgba(210,220,245,0.28)", borderRadius: 999, padding: "9px 18px",
     fontFamily: "'Space Grotesk', sans-serif", fontSize: 13, cursor: "pointer",
   },
   ghostInput: (color) => ({
@@ -222,7 +222,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
     flash(removing ? "ligação desfeita ✦" : "ligação criada ✦");
   };
 
-  const allNodes = [{ ...CORE, label: perfil.nome, color: "#8B7CF7", core: true }, ...stars];
+  const allNodes = [{ ...CORE, label: perfil.nome, color: "#AEB9FF", core: true }, ...stars];
   const nodeById = (id) => allNodes.find((n) => n.id === id);
   const zoomNode = active && !placing ? nodeById(active) : null;
   const TX = VX; // estrela em foco sempre à esquerda (edição e visualização)
@@ -360,7 +360,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
                   <button style={UI.starText(color)} onClick={() => { setLinking(star.id); setHintMsg(""); setActive(null); }}>🔗 ligações</button>
                   <button style={UI.starText("#FF8E8E")} onClick={() => deleteStar(star.id)}>☄ apagar estrela</button>
                 </div>
-                <p style={{ fontSize: 12, color: "#B9B3E8", letterSpacing: "0.06em", marginTop: 14 }}>
+                <p style={{ fontSize: 12, color: "#9FA9C5", letterSpacing: "0.06em", marginTop: 14 }}>
                   ✦ ligada a:{" "}
                   {connsOf(star)
                     .map((id) => (id === "nucleo" ? "Núcleo" : stars.find((x) => x.id === id)?.label || "?"))
@@ -369,9 +369,9 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
               </React.Fragment>
             )}
             <div style={{ marginTop: 26, paddingBottom: 8 }}>
-              <button style={UI.starText("#B9B3E8")} onClick={() => setEditing(false)}>✓ concluir edição</button>
+              <button style={UI.starText("#9FA9C5")} onClick={() => setEditing(false)}>✓ concluir edição</button>
             </div>
-            <div style={{ position: "sticky", bottom: 0, height: 26, marginTop: -26, background: "linear-gradient(transparent, rgba(5,5,16,0.95))", pointerEvents: "none" }} />
+            <div style={{ position: "sticky", bottom: 0, height: 26, marginTop: -26, background: "linear-gradient(transparent, rgba(1,2,8,0.95))", pointerEvents: "none" }} />
           </div>
         </div>
       );
@@ -420,13 +420,13 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
           {(isCore ? perfil.bio : star.desc) && (
             <p style={{
               margin: "6px 0 18px", lineHeight: 1.7, color: "#CFCBEF", fontSize: 15,
-              textShadow: "0 0 12px rgba(5,5,16,1), 0 0 24px rgba(5,5,16,1)",
+              textShadow: "0 0 12px rgba(1,2,8,1), 0 0 24px rgba(1,2,8,1)",
             }}>
               {isCore ? perfil.bio : star.desc}
             </p>
           )}
           {!isCore && star.links.length === 0 && !star.desc && !readOnly && (
-            <p style={{ color: "#B9B3E8", fontSize: 13 }}>
+            <p style={{ color: "#9FA9C5", fontSize: 13 }}>
               estrela silenciosa — toque em "✎ editar" para dar vida a ela
             </p>
           )}
@@ -446,9 +446,9 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
                     }} />
                   {l.titulo && (
                     <span style={{
-                      display: "block", marginTop: 6, fontSize: 13, color: "#B9B3E8",
+                      display: "block", marginTop: 6, fontSize: 13, color: "#9FA9C5",
                       fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0.06em",
-                      textShadow: "0 0 10px rgba(5,5,16,1)",
+                      textShadow: "0 0 10px rgba(1,2,8,1)",
                     }}>
                       ◐ {l.titulo}
                     </span>
@@ -470,7 +470,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
                 }} />
                 <span style={{
                   color: "#EDEDF7", fontFamily: "'Space Grotesk', sans-serif", fontSize: 15,
-                  letterSpacing: "0.05em", textShadow: `0 0 10px rgba(5,5,16,1), 0 0 18px ${hexToRgba(color, 0.4)}`,
+                  letterSpacing: "0.05em", textShadow: `0 0 10px rgba(1,2,8,1), 0 0 18px ${hexToRgba(color, 0.4)}`,
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 }}>
                   {l.titulo || l.url}
@@ -483,7 +483,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
 
         <p style={{
           position: "fixed", bottom: 18, left: "50%", transform: "translateX(-50%)",
-          fontSize: 12, color: "rgba(185,179,232,0.6)", letterSpacing: "0.08em", pointerEvents: "none", margin: 0,
+          fontSize: 12, color: "rgba(165,175,200,0.6)", letterSpacing: "0.08em", pointerEvents: "none", margin: 0,
         }}>
           toque no vazio para voltar ✦
         </p>
@@ -494,6 +494,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
   return (
     <div style={UI.root}>
       <Starfield />
+      <div className="void-vignette" />
       <header style={{
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 40,
         display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -501,14 +502,14 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
       }}>
         <div style={{ ...UI.display, fontSize: 16, fontWeight: 800, letterSpacing: "0.18em" }}>NÉBULA</div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {status && <span style={{ fontSize: 12, color: "#5EEAD4" }}>{status}</span>}
+          {status && <span style={{ fontSize: 12, color: "#CBD5FF" }}>{status}</span>}
           {!readOnly && (
             <React.Fragment>
               <button style={UI.btn} onClick={() => { setActive(null); setEditing(false); setPlacing({ mode: "new" }); }}>
                 ＋ Nova estrela
               </button>
               <button
-                style={editing ? { ...UI.ghostBtn, borderColor: "#5EEAD4", color: "#5EEAD4" } : UI.ghostBtn}
+                style={editing ? { ...UI.ghostBtn, borderColor: "#DCE4FF", color: "#DCE4FF" } : UI.ghostBtn}
                 onClick={() => setEditing(!editing)}>
                 {editing ? "✓ Concluir" : "✎ Editar"}
               </button>
@@ -565,9 +566,9 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
               <span style={{
                 position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)",
                 width: n.core ? 26 : 14, height: n.core ? 26 : 14, borderRadius: "50%",
-                background: n.core ? "radial-gradient(circle, #fff 20%, #8B7CF7 70%)" : `radial-gradient(circle, #fff 30%, ${n.color} 90%)`,
+                background: n.core ? "radial-gradient(circle, #fff 30%, #AEB9FF 80%)" : `radial-gradient(circle, #fff 30%, ${n.color} 90%)`,
                 boxShadow: isActive || isHover ? `0 0 26px 10px ${hexToRgba(n.color, 0.65)}`
-                  : n.core ? "0 0 30px 10px rgba(139,124,247,0.5)" : `0 0 12px 3px ${hexToRgba(n.color, 0.35)}`,
+                  : n.core ? "0 0 30px 10px rgba(174,185,255,0.4)" : `0 0 12px 3px ${hexToRgba(n.color, 0.35)}`,
                 animation: n.core ? "pulse 3.5s ease-in-out infinite" : undefined,
                 transition: "box-shadow .25s",
               }} />
@@ -576,9 +577,9 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
                 position: "absolute", left: "50%", top: `calc(50% + ${n.core ? 22 : 15}px)`,
                 transform: "translateX(-50%)",
                 fontSize: n.core ? 13 : 11, letterSpacing: "0.14em", textTransform: "uppercase",
-                color: isHover ? n.color : "#B9B3E8",
+                color: isHover ? n.color : "#9FA9C5",
                 fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500, whiteSpace: "nowrap",
-                transition: "color .25s, opacity .4s", textShadow: "0 0 8px rgba(5,5,16,0.9)",
+                transition: "color .25s, opacity .4s", textShadow: "0 0 8px rgba(1,2,8,0.9)",
                 opacity: isActive ? 0 : 1,
               }}>
                 {n.label}
@@ -590,17 +591,17 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
 
       {placing && !readOnly && (
         <div onClick={handleSkyClick}
-          style={{ position: "fixed", inset: 0, zIndex: 50, cursor: "crosshair", background: "rgba(94,234,212,0.03)" }}>
+          style={{ position: "fixed", inset: 0, zIndex: 50, cursor: "crosshair", background: "rgba(220,228,255,0.02)" }}>
           <p style={{
             position: "absolute", top: 80, left: "50%", transform: "translateX(-50%)",
-            background: "rgba(10,11,30,0.9)", border: "1px solid rgba(94,234,212,0.5)",
-            borderRadius: 999, padding: "10px 22px", fontSize: 13, color: "#5EEAD4",
+            background: "rgba(3,5,12,0.9)", border: "1px solid rgba(220,228,255,0.4)",
+            borderRadius: 999, padding: "10px 22px", fontSize: 13, color: "#DCE4FF",
             letterSpacing: "0.06em", whiteSpace: "nowrap", margin: 0, pointerEvents: "none",
           }}>
             {placing.mode === "new" ? "✦ toque no céu para criar a estrela" : "✥ toque no novo lugar da estrela"}
           </p>
           <button onClick={(e) => { e.stopPropagation(); setPlacing(null); }}
-            style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", ...UI.ghostBtn, background: "rgba(10,11,30,0.9)" }}>
+            style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", ...UI.ghostBtn, background: "rgba(3,5,12,0.9)" }}>
             Cancelar
           </button>
         </div>
@@ -611,8 +612,8 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
         <React.Fragment>
           <p style={{
             position: "fixed", top: 80, left: "50%", transform: "translateX(-50%)",
-            background: "rgba(10,11,30,0.85)", border: "1px solid rgba(139,124,247,0.45)",
-            borderRadius: 999, padding: "9px 20px", fontSize: 13, color: "#B9B3E8",
+            background: "rgba(3,5,12,0.85)", border: "1px solid rgba(195,205,235,0.45)",
+            borderRadius: 999, padding: "9px 20px", fontSize: 13, color: "#9FA9C5",
             letterSpacing: "0.06em", zIndex: 45, margin: 0, maxWidth: "88vw", textAlign: "center",
             pointerEvents: "none", // cliques atravessam o aviso e alcançam as estrelas
           }}>
@@ -632,7 +633,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
       {!active && !placing && !linking && (
         <p style={{
           position: "fixed", bottom: 16, left: "50%", transform: "translateX(-50%)",
-          fontSize: 12, color: "rgba(185,179,232,0.65)", letterSpacing: "0.08em",
+          fontSize: 12, color: "rgba(165,175,200,0.65)", letterSpacing: "0.08em",
           zIndex: 10, textAlign: "center", margin: 0,
         }}>
           toque em uma estrela para explorar ✦ arraste para navegar · scroll para zoom
@@ -645,7 +646,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
           onClick={() => setCam({ x: 0, y: 0, k: 1 })}
           style={{
             ...UI.ghostBtn, position: "fixed", right: 16, bottom: 16, zIndex: 20,
-            background: "rgba(10,11,30,0.85)",
+            background: "rgba(3,5,12,0.85)",
           }}>
           ⌖ recentralizar
         </button>
@@ -663,6 +664,7 @@ function CenterCard({ children }) {
   return (
     <div style={{ ...UI.root, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <Starfield />
+      <div className="void-vignette" />
       <div style={{ position: "relative", zIndex: 10, maxWidth: 340, width: "90%", textAlign: "center", padding: 24 }}>
         {children}
       </div>
@@ -694,9 +696,9 @@ function AuthScreen() {
   return (
     <CenterCard>
       <h1 style={{ ...UI.display, fontSize: 26, fontWeight: 800, letterSpacing: "0.18em", margin: "0 0 4px" }}>NÉBULA</h1>
-      <p style={{ color: "#B9B3E8", fontSize: 14, margin: "0 0 28px" }}>seu universo, suas estrelas ✦</p>
-      <input style={UI.ghostInput("#8B7CF7")} type="email" placeholder="e-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <input style={UI.ghostInput("#8B7CF7")} type="password" placeholder="senha (mín. 6 caracteres)" value={senha} onChange={(e) => setSenha(e.target.value)} />
+      <p style={{ color: "#9FA9C5", fontSize: 14, margin: "0 0 28px" }}>seu universo, suas estrelas ✦</p>
+      <input style={UI.ghostInput("#AEB9FF")} type="email" placeholder="e-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <input style={UI.ghostInput("#AEB9FF")} type="password" placeholder="senha (mín. 6 caracteres)" value={senha} onChange={(e) => setSenha(e.target.value)} />
       {msg && <p style={{ color: "#F5D98B", fontSize: 13, lineHeight: 1.5 }}>{msg}</p>}
       <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 12, flexWrap: "wrap" }}>
         <button style={UI.btn} disabled={busy} onClick={entrar}>Entrar</button>
@@ -732,11 +734,11 @@ function ClaimHandle({ userId, onDone }) {
   return (
     <CenterCard>
       <h2 style={{ ...UI.display, fontSize: 20, fontWeight: 600, margin: "0 0 6px" }}>Escolha seu endereço</h2>
-      <p style={{ color: "#B9B3E8", fontSize: 14, margin: "0 0 24px" }}>
+      <p style={{ color: "#9FA9C5", fontSize: 14, margin: "0 0 24px" }}>
         Será o link público do seu universo:<br />
-        <span style={{ color: "#5EEAD4" }}>{window.location.origin + window.location.pathname}#/@{handle || "seunome"}</span>
+        <span style={{ color: "#AEB9FF" }}>{window.location.origin + window.location.pathname}#/@{handle || "seunome"}</span>
       </p>
-      <input style={UI.ghostInput("#5EEAD4")} placeholder="seunome" value={handle}
+      <input style={UI.ghostInput("#DCE4FF")} placeholder="seunome" value={handle}
         onChange={(e) => setHandle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && claim()} />
       {msg && <p style={{ color: "#F5D98B", fontSize: 13 }}>{msg}</p>}
       <button style={{ ...UI.btn, marginTop: 10 }} disabled={busy} onClick={claim}>✦ Reivindicar estrela</button>
@@ -819,7 +821,7 @@ function VisitUniverse({ handle }) {
     return (
       <CenterCard>
         <h2 style={{ ...UI.display, fontSize: 20 }}>✦ universo não encontrado</h2>
-        <p style={{ color: "#B9B3E8", fontSize: 14 }}>Não existe nenhuma constelação em @{handle}.</p>
+        <p style={{ color: "#9FA9C5", fontSize: 14 }}>Não existe nenhuma constelação em @{handle}.</p>
         <button style={{ ...UI.btn, marginTop: 12 }} onClick={() => { window.location.hash = ""; }}>
           Criar meu universo
         </button>
@@ -842,10 +844,10 @@ function LoadingSky({ texto }) {
     <CenterCard>
       <div style={{
         width: 20, height: 20, borderRadius: "50%", margin: "0 auto 16px",
-        background: "radial-gradient(circle, #fff 20%, #8B7CF7 70%)",
-        boxShadow: "0 0 30px 10px rgba(139,124,247,0.5)", animation: "pulse 1.6s ease-in-out infinite",
+        background: "radial-gradient(circle, #fff 30%, #AEB9FF 80%)",
+        boxShadow: "0 0 30px 10px rgba(174,185,255,0.4)", animation: "pulse 1.6s ease-in-out infinite",
       }} />
-      <p style={{ color: "#B9B3E8", fontSize: 14, letterSpacing: "0.08em" }}>{texto}</p>
+      <p style={{ color: "#9FA9C5", fontSize: 14, letterSpacing: "0.08em" }}>{texto}</p>
     </CenterCard>
   );
 }
@@ -914,10 +916,12 @@ rootStyles.textContent = `
   @keyframes spin { from { transform: translate(-50%,-50%) rotate(0deg) } to { transform: translate(-50%,-50%) rotate(360deg) } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
   a:hover span { filter: brightness(1.2); }
-  .neb-scroll { scrollbar-width: thin; scrollbar-color: rgba(139,124,247,0.4) transparent; }
+  .neb-scroll { scrollbar-width: thin; scrollbar-color: rgba(195,205,235,0.4) transparent; }
   .neb-scroll::-webkit-scrollbar { width: 5px; }
-  .neb-scroll::-webkit-scrollbar-thumb { background: rgba(139,124,247,0.4); border-radius: 99px; }
+  .neb-scroll::-webkit-scrollbar-thumb { background: rgba(195,205,235,0.4); border-radius: 99px; }
   .neb-scroll::-webkit-scrollbar-track { background: transparent; }
+  .void-vignette { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 45%, transparent 52%, rgba(0,0,0,0.5) 100%); }
   input:focus, textarea:focus { border-bottom-color: #fff !important; }
   input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
   input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
