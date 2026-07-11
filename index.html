@@ -227,11 +227,60 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
   const zoomNode = active && !placing ? nodeById(active) : null;
   const TX = VX; // estrela em foco sempre à esquerda (edição e visualização)
   const TY = VY;
+
+  /* ---------- câmera livre: arrastar para navegar + scroll para zoom ---------- */
+  const [cam, setCam] = useState({ x: 0, y: 0, k: 1 });
+  const camRef = useRef(cam);
+  useEffect(() => { camRef.current = cam; }, [cam]);
+  const [interacting, setInteracting] = useState(false);
+  const interactTimer = useRef(null);
+  const dragRef = useRef(null);
+  const bump = () => {
+    setInteracting(true);
+    clearTimeout(interactTimer.current);
+    interactTimer.current = setTimeout(() => setInteracting(false), 200);
+  };
+  const camFree = !zoomNode && !placing;
+  const onSkyPointerDown = (e) => {
+    if (!camFree) return;
+    if (e.target.closest && e.target.closest("button")) return; // não rouba o clique das estrelas
+    dragRef.current = { x: e.clientX, y: e.clientY };
+  };
+  const onSkyPointerMove = (e) => {
+    if (!dragRef.current) return;
+    bump();
+    const dx = e.clientX - dragRef.current.x;
+    const dy = e.clientY - dragRef.current.y;
+    dragRef.current = { x: e.clientX, y: e.clientY };
+    setCam((c) => ({ ...c, x: c.x + (dx / window.innerWidth) * 100, y: c.y + (dy / window.innerHeight) * 100 }));
+  };
+  const onSkyPointerUp = () => { dragRef.current = null; };
+  const onSkyWheel = (e) => {
+    if (!camFree) return;
+    bump();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const c = camRef.current;
+    const k2 = Math.min(4, Math.max(0.4, c.k * Math.exp(-e.deltaY * 0.0012)));
+    // zoom mirando o cursor: o ponto sob o mouse permanece no lugar
+    const tx = (c.x / 100) * vw, ty = (c.y / 100) * vh;
+    const px = e.clientX - vw / 2, py = e.clientY - vh / 2;
+    const tx2 = px - (px - tx) * (k2 / c.k);
+    const ty2 = py - (py - ty) * (k2 / c.k);
+    setCam({ x: (tx2 / vw) * 100, y: (ty2 / vh) * 100, k: k2 });
+  };
+  const camMoved = cam.k !== 1 || Math.abs(cam.x) > 0.01 || Math.abs(cam.y) > 0.01;
+
   const worldStyle = {
     position: "fixed", inset: 0, zIndex: 5,
     transformOrigin: zoomNode ? `${zoomNode.x}% ${zoomNode.y}%` : "50% 50%",
-    transform: zoomNode ? `translate(${TX - zoomNode.x}%, ${TY - zoomNode.y}%) scale(2.1)` : "none",
-    transition: "transform .8s cubic-bezier(.22,.9,.28,1), transform-origin .8s cubic-bezier(.22,.9,.28,1)",
+    transform: zoomNode
+      ? `translate(${TX - zoomNode.x}%, ${TY - zoomNode.y}%) scale(2.1)`
+      : `translate(${cam.x}%, ${cam.y}%) scale(${cam.k})`,
+    transition: interacting
+      ? "none"
+      : "transform .8s cubic-bezier(.22,.9,.28,1), transform-origin .8s cubic-bezier(.22,.9,.28,1)",
+    cursor: camFree ? "grab" : "default",
+    touchAction: "none",
   };
 
   const renderFocusScene = () => {
@@ -469,7 +518,14 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
         </div>
       </header>
 
-      <div style={worldStyle}>
+      <div
+        style={worldStyle}
+        onPointerDown={onSkyPointerDown}
+        onPointerMove={onSkyPointerMove}
+        onPointerUp={onSkyPointerUp}
+        onPointerLeave={onSkyPointerUp}
+        onWheel={onSkyWheel}
+      >
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
           {stars.flatMap((s) =>
             connsOf(s).map((pid) => {
@@ -579,8 +635,20 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
           fontSize: 12, color: "rgba(185,179,232,0.65)", letterSpacing: "0.08em",
           zIndex: 10, textAlign: "center", margin: 0,
         }}>
-          toque em uma estrela para explorar ✦
+          toque em uma estrela para explorar ✦ arraste para navegar · scroll para zoom
         </p>
+      )}
+
+      {/* recentralizar a câmera */}
+      {camFree && camMoved && (
+        <button
+          onClick={() => setCam({ x: 0, y: 0, k: 1 })}
+          style={{
+            ...UI.ghostBtn, position: "fixed", right: 16, bottom: 16, zIndex: 20,
+            background: "rgba(10,11,30,0.85)",
+          }}>
+          ⌖ recentralizar
+        </button>
       )}
 
       {renderFocusScene()}
