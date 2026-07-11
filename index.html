@@ -217,7 +217,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
             width: "26vmin", height: "26vmin", borderRadius: "50%",
             border: `1px dashed ${hexToRgba(color, 0.4)}`, animation: "spin 40s linear infinite", pointerEvents: "none",
           }} />
-          <div style={{ maxWidth: 360, margin: "0 auto", padding: `calc(${FY}% + 18vmin) 24px 60px`, textAlign: "center" }}>
+          <div style={{ maxWidth: 360, margin: "0 auto", padding: `calc(${FY}vh + 16vmin) 24px 60px`, textAlign: "center" }}>
             {isCore ? (
               <React.Fragment>
                 <input style={{ ...UI.ghostInput(color), fontFamily: "'Unbounded', sans-serif", fontSize: 20 }}
