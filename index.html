@@ -166,6 +166,8 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
   const [hovered, setHovered] = useState(null);
   const [editing, setEditing] = useState(false);
   const [placing, setPlacing] = useState(null);
+  const [linking, setLinking] = useState(null); // id da estrela sendo religada
+  const [hintMsg, setHintMsg] = useState("");
 
   const starById = (id) => stars.find((s) => s.id === id);
   const updStar = (id, patch) => setStars(stars.map((s) => (s.id === id ? { ...s, ...patch } : s)));
@@ -179,21 +181,49 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
       setPlacing(null);
     } else {
       const id = "s" + Date.now();
-      setStars([...stars, { id, label: "Nova estrela", color: PALETTE[stars.length % PALETTE.length], x, y, desc: "", links: [] }]);
+      setStars([...stars, { id, label: "Nova estrela", color: PALETTE[stars.length % PALETTE.length], x, y, desc: "", links: [], parent: "nucleo" }]);
       setPlacing(null);
       setActive(id);
       setEditing(true);
     }
   };
 
-  const deleteStar = (id) => { setStars(stars.filter((s) => s.id !== id)); setActive(null); };
+  const deleteStar = (id) => {
+    // estrelas que apontavam para a apagada voltam a se ligar ao núcleo
+    setStars(stars.filter((s) => s.id !== id).map((s) => (s.parent === id ? { ...s, parent: "nucleo" } : s)));
+    setActive(null);
+  };
+
+  /* ---------- caminhos de estrelas (ligar uma estrela a outra) ---------- */
+  const wouldCycle = (childId, targetId) => {
+    let cur = targetId, guard = 0;
+    while (cur && cur !== "nucleo" && guard++ < 200) {
+      if (cur === childId) return true;
+      const s = stars.find((x) => x.id === cur);
+      cur = s ? s.parent || "nucleo" : "nucleo";
+    }
+    return false;
+  };
+
+  const completeLink = (targetId) => {
+    if (!linking) return;
+    if (targetId === linking) { setHintMsg("uma estrela não pode se ligar a si mesma ✦"); return; }
+    if (targetId !== "nucleo" && wouldCycle(linking, targetId)) {
+      setHintMsg("essa ligação criaria um loop ✦ escolha outra estrela");
+      return;
+    }
+    updStar(linking, { parent: targetId });
+    const id = linking;
+    setLinking(null);
+    setHintMsg("");
+    setActive(id);
+  };
 
   const allNodes = [{ ...CORE, label: perfil.nome, color: "#8B7CF7", core: true }, ...stars];
   const nodeById = (id) => allNodes.find((n) => n.id === id);
   const zoomNode = active && !placing ? nodeById(active) : null;
-  const inEdit = editing && !readOnly;
-  const TX = inEdit ? FX : VX; // edição: estrela centralizada / visualização: à esquerda
-  const TY = inEdit ? FY : VY;
+  const TX = VX; // estrela em foco sempre à esquerda (edição e visualização)
+  const TY = VY;
   const worldStyle = {
     position: "fixed", inset: 0, zIndex: 5,
     transformOrigin: zoomNode ? `${zoomNode.x}% ${zoomNode.y}%` : "50% 50%",
@@ -211,13 +241,21 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
 
     if (editing && !readOnly) {
       return (
-        <div style={{ position: "fixed", inset: 0, zIndex: 30, overflowY: "auto", animation: "fadeIn .5s ease" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 30, animation: "fadeIn .5s ease" }}>
+          {/* halo de edição girando ao redor da estrela em foco (esquerda) */}
           <div style={{
-            position: "fixed", left: `${FX}%`, top: `${FY}%`, transform: "translate(-50%,-50%)",
-            width: "26vmin", height: "26vmin", borderRadius: "50%",
+            position: "fixed", left: `${VX}%`, top: `${VY}%`, transform: "translate(-50%,-50%)",
+            width: "22vmin", height: "22vmin", borderRadius: "50%",
             border: `1px dashed ${hexToRgba(color, 0.4)}`, animation: "spin 40s linear infinite", pointerEvents: "none",
           }} />
-          <div style={{ maxWidth: 360, margin: "0 auto", padding: `calc(${FY}vh + 16vmin) 24px 60px`, textAlign: "center" }}>
+          {/* campos flutuando à direita, coluna rolável */}
+          <div className="neb-scroll" style={{
+            position: "fixed", left: `calc(${VX}% + 17vmin)`, right: "4vw",
+            top: "50%", transform: "translateY(-50%)",
+            maxHeight: "80vh", maxWidth: 520, overflowY: "auto",
+            zIndex: 31, animation: "riseSide .6s ease", textAlign: "center",
+            paddingRight: 8,
+          }}>
             {isCore ? (
               <React.Fragment>
                 <input style={{ ...UI.ghostInput(color), fontFamily: "'Unbounded', sans-serif", fontSize: 20 }}
@@ -267,13 +305,15 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
                 </button>
                 <div style={{ marginTop: 22, display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
                   <button style={UI.starText(color)} onClick={() => setPlacing({ mode: "move", id: star.id })}>✥ mover no céu</button>
+                  <button style={UI.starText(color)} onClick={() => { setLinking(star.id); setHintMsg(""); setActive(null); }}>🔗 ligar a outra estrela</button>
                   <button style={UI.starText("#FF8E8E")} onClick={() => deleteStar(star.id)}>☄ apagar estrela</button>
                 </div>
               </React.Fragment>
             )}
-            <div style={{ marginTop: 26 }}>
+            <div style={{ marginTop: 26, paddingBottom: 8 }}>
               <button style={UI.starText("#B9B3E8")} onClick={() => setEditing(false)}>✓ concluir edição</button>
             </div>
+            <div style={{ position: "sticky", bottom: 0, height: 26, marginTop: -26, background: "linear-gradient(transparent, rgba(5,5,16,0.95))", pointerEvents: "none" }} />
           </div>
         </div>
       );
@@ -292,7 +332,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
         }} />
 
         {/* conteúdo flutuando à direita, sem caixa */}
-        <div style={{
+        <div className="neb-scroll" style={{
           position: "fixed",
           left: `calc(${VX}% + 17vmin)`,
           right: "4vw",
@@ -421,9 +461,13 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
       <div style={worldStyle}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
           {stars.map((s) => {
-            const lit = hovered === s.id || active === s.id;
+            const parentId = s.parent || "nucleo";
+            const p = parentId !== "nucleo" ? stars.find((x) => x.id === parentId) : null;
+            const px = p ? p.x : CORE.x;
+            const py = p ? p.y : CORE.y;
+            const lit = hovered === s.id || active === s.id || hovered === parentId || active === parentId;
             return (
-              <line key={s.id} x1={CORE.x} y1={CORE.y} x2={s.x} y2={s.y}
+              <line key={s.id} x1={px} y1={py} x2={s.x} y2={s.y}
                 stroke={lit ? hexToRgba(s.color, 0.8) : hexToRgba(s.color, 0.28)}
                 strokeWidth={lit ? 0.28 : 0.14}
                 style={{ transition: "stroke .25s, stroke-width .25s" }} />
@@ -436,7 +480,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
           const size = n.core ? 74 : 46;
           return (
             <button key={n.id}
-              onClick={() => !placing && setActive(n.id)}
+              onClick={() => { if (linking) { completeLink(n.id); } else if (!placing) { setActive(n.id); } }}
               onMouseEnter={() => setHovered(n.id)}
               onMouseLeave={() => setHovered(null)}
               aria-label={`Abrir estrela ${n.label}`}
@@ -493,7 +537,29 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
         </div>
       )}
 
-      {!active && !placing && (
+      {/* modo de ligação: escolher a estrela de origem do caminho */}
+      {linking && (
+        <React.Fragment>
+          <p style={{
+            position: "fixed", top: 80, left: "50%", transform: "translateX(-50%)",
+            background: "rgba(10,11,30,0.92)", border: "1px solid rgba(139,124,247,0.55)",
+            borderRadius: 999, padding: "10px 22px", fontSize: 13, color: "#B9B3E8",
+            letterSpacing: "0.06em", zIndex: 45, margin: 0, maxWidth: "88vw", textAlign: "center",
+          }}>
+            {hintMsg || "🔗 toque na estrela (ou no núcleo) de onde este caminho vai partir"}
+          </p>
+          <button
+            onClick={() => { setLinking(null); setHintMsg(""); }}
+            style={{
+              position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+              ...UI.ghostBtn, background: "rgba(10,11,30,0.9)", zIndex: 45,
+            }}>
+            Cancelar
+          </button>
+        </React.Fragment>
+      )}
+
+      {!active && !placing && !linking && (
         <p style={{
           position: "fixed", bottom: 16, left: "50%", transform: "translateX(-50%)",
           fontSize: 12, color: "rgba(185,179,232,0.65)", letterSpacing: "0.08em",
@@ -766,6 +832,10 @@ rootStyles.textContent = `
   @keyframes spin { from { transform: translate(-50%,-50%) rotate(0deg) } to { transform: translate(-50%,-50%) rotate(360deg) } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
   a:hover span { filter: brightness(1.2); }
+  .neb-scroll { scrollbar-width: thin; scrollbar-color: rgba(139,124,247,0.4) transparent; }
+  .neb-scroll::-webkit-scrollbar { width: 5px; }
+  .neb-scroll::-webkit-scrollbar-thumb { background: rgba(139,124,247,0.4); border-radius: 99px; }
+  .neb-scroll::-webkit-scrollbar-track { background: transparent; }
   input:focus, textarea:focus { border-bottom-color: #fff !important; }
   input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
   input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
