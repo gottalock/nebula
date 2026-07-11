@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NÉBULA — sua constelação pessoal</title>
+<title>nebula</title>
 <meta name="description" content="Crie seu perfil em forma de constelação e compartilhe seu universo." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>" />
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -28,7 +29,21 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const hasBackend =
   !SUPABASE_URL.includes("COLE_AQUI") && !SUPABASE_ANON_KEY.includes("COLE_AQUI");
-const sb = hasBackend ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const sb = hasBackend
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,      // mantém o login salvo no navegador
+        autoRefreshToken: true,    // renova a sessão sozinho (não expira)
+        detectSessionInUrl: true,
+        storage: window.localStorage,
+      },
+    })
+  : null;
+
+/* título dinâmico da aba do navegador */
+const setTabTitle = (handle) => {
+  document.title = handle ? "nebula/@" + handle.replace(/^@/, "") : "nebula";
+};
 
 const CORE = { id: "nucleo", x: 50, y: 46 };
 const PALETTE = ["#5EEAD4", "#8B7CF7", "#F5A9E1", "#F5D98B", "#7CC4F7", "#FF8E72"];
@@ -460,6 +475,7 @@ function CenterCard({ children }) {
 }
 
 function AuthScreen() {
+  useEffect(() => { setTabTitle(null); }, []);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [msg, setMsg] = useState("");
@@ -551,6 +567,7 @@ function MyUniverse({ session }) {
     if (row) {
       setPerfilState(row.data.perfil);
       setStarsState(row.data.stars || []);
+      setTabTitle(row.handle);
     }
   }, [row]);
 
@@ -597,6 +614,7 @@ function VisitUniverse({ handle }) {
     (async () => {
       const { data } = await sb.from("profiles").select("handle, data").eq("handle", handle).maybeSingle();
       setRow(data || null);
+      setTabTitle(data ? data.handle : null);
     })();
   }, [handle]);
 
