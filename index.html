@@ -168,6 +168,13 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
   const [placing, setPlacing] = useState(null);
   const [linking, setLinking] = useState(null); // id da estrela sendo religada
   const [hintMsg, setHintMsg] = useState("");
+  const hintTimer = useRef(null);
+  // mostra um aviso temporário que some sozinho (não fica tampando o céu)
+  const flash = (msg) => {
+    setHintMsg(msg);
+    clearTimeout(hintTimer.current);
+    hintTimer.current = setTimeout(() => setHintMsg(""), 2200);
+  };
 
   const starById = (id) => stars.find((s) => s.id === id);
   const updStar = (id, patch) => setStars(stars.map((s) => (s.id === id ? { ...s, ...patch } : s)));
@@ -206,13 +213,13 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
 
   const completeLink = (targetId) => {
     if (!linking) return;
-    if (targetId === linking) { setHintMsg("uma estrela não pode se ligar a si mesma ✦"); return; }
+    if (targetId === linking) { flash("uma estrela não pode se ligar a si mesma ✦"); return; }
     const st = stars.find((x) => x.id === linking);
     if (!st) return;
     const conns = connsOf(st);
     const removing = conns.includes(targetId);
     updStar(linking, { parents: removing ? conns.filter((c) => c !== targetId) : [...conns, targetId] });
-    setHintMsg(removing ? "ligação desfeita ✦" : "ligação criada ✦");
+    flash(removing ? "ligação desfeita ✦" : "ligação criada ✦");
   };
 
   const allNodes = [{ ...CORE, label: perfil.nome, color: "#8B7CF7", core: true }, ...stars];
@@ -532,7 +539,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
             position: "absolute", top: 80, left: "50%", transform: "translateX(-50%)",
             background: "rgba(10,11,30,0.9)", border: "1px solid rgba(94,234,212,0.5)",
             borderRadius: 999, padding: "10px 22px", fontSize: 13, color: "#5EEAD4",
-            letterSpacing: "0.06em", whiteSpace: "nowrap", margin: 0,
+            letterSpacing: "0.06em", whiteSpace: "nowrap", margin: 0, pointerEvents: "none",
           }}>
             {placing.mode === "new" ? "✦ toque no céu para criar a estrela" : "✥ toque no novo lugar da estrela"}
           </p>
@@ -548,9 +555,10 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
         <React.Fragment>
           <p style={{
             position: "fixed", top: 80, left: "50%", transform: "translateX(-50%)",
-            background: "rgba(10,11,30,0.92)", border: "1px solid rgba(139,124,247,0.55)",
-            borderRadius: 999, padding: "10px 22px", fontSize: 13, color: "#B9B3E8",
+            background: "rgba(10,11,30,0.85)", border: "1px solid rgba(139,124,247,0.45)",
+            borderRadius: 999, padding: "9px 20px", fontSize: 13, color: "#B9B3E8",
             letterSpacing: "0.06em", zIndex: 45, margin: 0, maxWidth: "88vw", textAlign: "center",
+            pointerEvents: "none", // cliques atravessam o aviso e alcançam as estrelas
           }}>
             {hintMsg || "🔗 toque nas estrelas para ligar/desligar esta estrela a elas"}
           </p>
