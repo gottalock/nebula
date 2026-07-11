@@ -250,11 +250,11 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
           }} />
           {/* campos flutuando à direita, coluna rolável */}
           <div className="neb-scroll" style={{
-            position: "fixed", left: `calc(${VX}% + 17vmin)`, right: "4vw",
+            position: "fixed", left: `calc(${VX}% + 15vmin)`, right: "4vw",
             top: "50%", transform: "translateY(-50%)",
-            maxHeight: "80vh", maxWidth: 520, overflowY: "auto",
+            maxHeight: "82vh", maxWidth: 560, overflowY: "auto",
             zIndex: 31, animation: "riseSide .6s ease", textAlign: "center",
-            paddingRight: 8,
+            padding: "30px 14px 0 14px", boxSizing: "border-box",
           }}>
             {isCore ? (
               <React.Fragment>
@@ -334,16 +334,18 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
         {/* conteúdo flutuando à direita, sem caixa */}
         <div className="neb-scroll" style={{
           position: "fixed",
-          left: `calc(${VX}% + 17vmin)`,
+          left: `calc(${VX}% + 15vmin)`,
           right: "4vw",
           top: "50%",
           transform: "translateY(-50%)",
-          maxHeight: "72vh",
-          maxWidth: 520,
+          maxHeight: "76vh",
+          maxWidth: 560,
           overflowY: "auto",
           zIndex: 31,
           animation: "riseSide .7s ease",
-          paddingRight: 6,
+          // respiro interno para a aura das letras não ser cortada nas bordas
+          padding: "56px 12px 10px 20px",
+          boxSizing: "border-box",
         }}>
           <h2 style={{
             ...UI.display, fontSize: "clamp(20px, 4.6vmin, 34px)", fontWeight: 800,
