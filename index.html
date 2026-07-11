@@ -303,8 +303,9 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
           {/* campos flutuando à direita, coluna rolável */}
           <div className="neb-scroll" style={{
             position: "fixed", left: `calc(${VX}% + 15vmin)`, right: "4vw",
-            top: "50%", transform: "translateY(-50%)",
-            maxHeight: "82vh", maxWidth: 560, overflowY: "auto",
+            top: `calc(${VY}% - 52px)`,
+            maxHeight: `calc(${100 - VY}vh + 20px)`,
+            maxWidth: 560, overflowY: "auto",
             zIndex: 31, animation: "riseSide .6s ease", textAlign: "center",
             padding: "30px 14px 0 14px", boxSizing: "border-box",
           }}>
@@ -394,9 +395,9 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
           position: "fixed",
           left: `calc(${VX}% + 15vmin)`,
           right: "4vw",
-          top: "50%",
-          transform: "translateY(-50%)",
-          maxHeight: "76vh",
+          // ancorado para o CENTRO DO TÍTULO cair na altura da estrela/linha
+          top: `calc(${VY}% - 78px)`,
+          maxHeight: `calc(${100 - VY}vh + 40px)`,
           maxWidth: 560,
           overflowY: "auto",
           zIndex: 31,
@@ -910,7 +911,7 @@ const rootStyles = document.createElement("style");
 rootStyles.textContent = `
   @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
   @keyframes riseIn { from { opacity: 0; transform: translate(-50%, calc(-50% + 14px)) } to { opacity: 1 } }
-  @keyframes riseSide { from { opacity: 0; transform: translateY(calc(-50% + 18px)) } to { opacity: 1 } }
+  @keyframes riseSide { from { opacity: 0; transform: translateY(18px) } to { opacity: 1; transform: none } }
   @keyframes riseItem { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
   @keyframes pulse { 0%,100% { opacity: .6 } 50% { opacity: 1 } }
   @keyframes spin { from { transform: translate(-50%,-50%) rotate(0deg) } to { transform: translate(-50%,-50%) rotate(360deg) } }
