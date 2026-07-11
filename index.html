@@ -62,6 +62,12 @@ const detectKind = (url) => {
 };
 const kindIcon = { image: "◐", music: "♪", link: "↗" };
 
+// converte um link do Spotify (track/playlist/album...) no formato do player embutido
+const spotifyEmbed = (url) => {
+  const m = /open\.spotify\.com\/(?:intl-[a-z-]+\/)?(track|album|playlist|artist|episode|show)\/([A-Za-z0-9]+)/.exec(url || "");
+  return m ? `https://open.spotify.com/embed/${m[1]}/${m[2]}?theme=0` : null;
+};
+
 const defaultData = (nome) => ({
   perfil: {
     nome: nome || "Viajante",
@@ -296,10 +302,11 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
   const audioRef = useRef(null);
   const [soundOn, setSoundOn] = useState(true);
   const [needsTap, setNeedsTap] = useState(false);
+  const spotTrack = spotifyEmbed(track);
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
-    if (!track || !soundOn) { a.pause(); return; }
+    if (!track || !soundOn || spotTrack) { a.pause(); return; }
     if (a.getAttribute("data-url") !== track) {
       a.setAttribute("data-url", track);
       a.src = track;
@@ -307,7 +314,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
     a.loop = true;
     a.volume = 0.4;
     a.play().then(() => setNeedsTap(false)).catch(() => setNeedsTap(true));
-  }, [track, soundOn]);
+  }, [track, soundOn, spotTrack]);
   const onSkyPointerDown = (e) => {
     if (!camFree) return;
     if (e.target.closest && e.target.closest("button")) return; // não rouba o clique das estrelas
@@ -387,7 +394,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
                 <input
                   style={UI.ghostInput(color)}
                   value={perfil.musica || ""}
-                  placeholder="♪ música do universo (link .mp3)"
+                  placeholder="♪ música do universo (.mp3 ou link do Spotify)"
                   onChange={(e) => setPerfil({ ...perfil, musica: e.target.value })}
                 />
                 {upload && (
@@ -451,7 +458,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
                 <input
                   style={UI.ghostInput(color)}
                   value={star.musica || ""}
-                  placeholder="♪ música desta estrela (link .mp3, opcional)"
+                  placeholder="♪ música desta estrela (.mp3 ou Spotify, opcional)"
                   onChange={(e) => updStar(star.id, { musica: e.target.value })}
                 />
                 {upload && (
@@ -765,7 +772,31 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
 
       {/* trilha sonora: player invisível + controles */}
       <audio ref={audioRef} style={{ display: "none" }} />
-      {track && (
+      {track && spotTrack && soundOn && (
+        <div style={{ position: "fixed", left: 16, bottom: 64, zIndex: 20, animation: "fadeIn .6s ease" }}>
+          <iframe
+            key={spotTrack}
+            src={spotTrack}
+            width="300" height="80" frameBorder="0"
+            allow="encrypted-media; autoplay; clipboard-write"
+            title="Player do Spotify"
+            style={{ borderRadius: 14, display: "block", boxShadow: "0 8px 30px rgba(0,0,0,0.6)" }} />
+        </div>
+      )}
+      {track && spotTrack && (
+        <button
+          onClick={() => setSoundOn(!soundOn)}
+          aria-label={soundOn ? "Esconder player" : "Mostrar player"}
+          style={{
+            ...UI.ghostBtn, position: "fixed", left: 16, bottom: 16, zIndex: 20,
+            background: "rgba(3,5,12,0.85)", width: 40, height: 40, padding: 0,
+            borderRadius: "50%", fontSize: 15,
+            color: soundOn ? "#DCE4FF" : "#5A617A",
+          }}>
+          {soundOn ? "♪" : "∅"}
+        </button>
+      )}
+      {track && !spotTrack && (
         needsTap && soundOn ? (
           <button
             onClick={() => {
