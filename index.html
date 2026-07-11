@@ -181,7 +181,7 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
       setPlacing(null);
     } else {
       const id = "s" + Date.now();
-      setStars([...stars, { id, label: "Nova estrela", color: PALETTE[stars.length % PALETTE.length], x, y, desc: "", links: [], parent: "nucleo" }]);
+      setStars([...stars, { id, label: "Nova estrela", color: PALETTE[stars.length % PALETTE.length], x, y, desc: "", links: [], parents: ["nucleo"] }]);
       setPlacing(null);
       setActive(id);
       setEditing(true);
@@ -189,34 +189,30 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
   };
 
   const deleteStar = (id) => {
-    // estrelas que apontavam para a apagada voltam a se ligar ao núcleo
-    setStars(stars.filter((s) => s.id !== id).map((s) => (s.parent === id ? { ...s, parent: "nucleo" } : s)));
+    // remove a estrela apagada das ligações das outras; quem ficar sem nada volta ao núcleo
+    setStars(
+      stars.filter((s) => s.id !== id).map((s) => {
+        const conns = connsOf(s).filter((c) => c !== id);
+        return { ...s, parents: conns.length ? conns : ["nucleo"] };
+      })
+    );
     setActive(null);
   };
 
-  /* ---------- caminhos de estrelas (ligar uma estrela a outra) ---------- */
-  const wouldCycle = (childId, targetId) => {
-    let cur = targetId, guard = 0;
-    while (cur && cur !== "nucleo" && guard++ < 200) {
-      if (cur === childId) return true;
-      const s = stars.find((x) => x.id === cur);
-      cur = s ? s.parent || "nucleo" : "nucleo";
-    }
-    return false;
-  };
+  /* ---------- caminhos de estrelas (ligações múltiplas) ---------- */
+  // compatível com perfis antigos: 'parent' (um só) vira lista 'parents'
+  const connsOf = (s) =>
+    Array.isArray(s.parents) ? s.parents : s.parent ? [s.parent] : ["nucleo"];
 
   const completeLink = (targetId) => {
     if (!linking) return;
     if (targetId === linking) { setHintMsg("uma estrela não pode se ligar a si mesma ✦"); return; }
-    if (targetId !== "nucleo" && wouldCycle(linking, targetId)) {
-      setHintMsg("essa ligação criaria um loop ✦ escolha outra estrela");
-      return;
-    }
-    updStar(linking, { parent: targetId });
-    const id = linking;
-    setLinking(null);
-    setHintMsg("");
-    setActive(id);
+    const st = stars.find((x) => x.id === linking);
+    if (!st) return;
+    const conns = connsOf(st);
+    const removing = conns.includes(targetId);
+    updStar(linking, { parents: removing ? conns.filter((c) => c !== targetId) : [...conns, targetId] });
+    setHintMsg(removing ? "ligação desfeita ✦" : "ligação criada ✦");
   };
 
   const allNodes = [{ ...CORE, label: perfil.nome, color: "#8B7CF7", core: true }, ...stars];
@@ -305,9 +301,15 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
                 </button>
                 <div style={{ marginTop: 22, display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
                   <button style={UI.starText(color)} onClick={() => setPlacing({ mode: "move", id: star.id })}>✥ mover no céu</button>
-                  <button style={UI.starText(color)} onClick={() => { setLinking(star.id); setHintMsg(""); setActive(null); }}>🔗 ligar a outra estrela</button>
+                  <button style={UI.starText(color)} onClick={() => { setLinking(star.id); setHintMsg(""); setActive(null); }}>🔗 ligações</button>
                   <button style={UI.starText("#FF8E8E")} onClick={() => deleteStar(star.id)}>☄ apagar estrela</button>
                 </div>
+                <p style={{ fontSize: 12, color: "#B9B3E8", letterSpacing: "0.06em", marginTop: 14 }}>
+                  ✦ ligada a:{" "}
+                  {connsOf(star)
+                    .map((id) => (id === "nucleo" ? "Núcleo" : stars.find((x) => x.id === id)?.label || "?"))
+                    .join(" · ") || "nada (estrela solta)"}
+                </p>
               </React.Fragment>
             )}
             <div style={{ marginTop: 26, paddingBottom: 8 }}>
@@ -462,19 +464,21 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
 
       <div style={worldStyle}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-          {stars.map((s) => {
-            const parentId = s.parent || "nucleo";
-            const p = parentId !== "nucleo" ? stars.find((x) => x.id === parentId) : null;
-            const px = p ? p.x : CORE.x;
-            const py = p ? p.y : CORE.y;
-            const lit = hovered === s.id || active === s.id || hovered === parentId || active === parentId;
-            return (
-              <line key={s.id} x1={px} y1={py} x2={s.x} y2={s.y}
-                stroke={lit ? hexToRgba(s.color, 0.8) : hexToRgba(s.color, 0.28)}
-                strokeWidth={lit ? 0.28 : 0.14}
-                style={{ transition: "stroke .25s, stroke-width .25s" }} />
-            );
-          })}
+          {stars.flatMap((s) =>
+            connsOf(s).map((pid) => {
+              const p = pid !== "nucleo" ? stars.find((x) => x.id === pid) : null;
+              if (pid !== "nucleo" && !p) return null;
+              const px = p ? p.x : CORE.x;
+              const py = p ? p.y : CORE.y;
+              const lit = [s.id, pid].includes(hovered) || [s.id, pid].includes(active);
+              return (
+                <line key={s.id + "-" + pid} x1={px} y1={py} x2={s.x} y2={s.y}
+                  stroke={lit ? hexToRgba(s.color, 0.8) : hexToRgba(s.color, 0.28)}
+                  strokeWidth={lit ? 0.28 : 0.14}
+                  style={{ transition: "stroke .25s, stroke-width .25s" }} />
+              );
+            })
+          )}
         </svg>
         {allNodes.map((n) => {
           const isActive = active === n.id;
@@ -548,15 +552,15 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
             borderRadius: 999, padding: "10px 22px", fontSize: 13, color: "#B9B3E8",
             letterSpacing: "0.06em", zIndex: 45, margin: 0, maxWidth: "88vw", textAlign: "center",
           }}>
-            {hintMsg || "🔗 toque na estrela (ou no núcleo) de onde este caminho vai partir"}
+            {hintMsg || "🔗 toque nas estrelas para ligar/desligar esta estrela a elas"}
           </p>
           <button
-            onClick={() => { setLinking(null); setHintMsg(""); }}
+            onClick={() => { const id = linking; setLinking(null); setHintMsg(""); setActive(id); }}
             style={{
               position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
-              ...UI.ghostBtn, background: "rgba(10,11,30,0.9)", zIndex: 45,
+              ...UI.btn, zIndex: 45,
             }}>
-            Cancelar
+            ✓ Concluir ligações
           </button>
         </React.Fragment>
       )}
