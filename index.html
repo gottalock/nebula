@@ -161,7 +161,36 @@ const UI = {
 /* ============================================================
    NEBULA — a constelação (editável ou somente leitura)
    ============================================================ */
-function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, status }) {
+/* ---------- zona de arrastar arquivos (imagens/áudio) ---------- */
+function DropZone({ color, accept, label, busy, onFile }) {
+  const [over, setOver] = useState(false);
+  const inputRef = useRef(null);
+  return (
+    <div
+      onDragOver={(e) => { e.preventDefault(); setOver(true); }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault(); setOver(false);
+        const f = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (f) onFile(f);
+      }}
+      onClick={() => inputRef.current && inputRef.current.click()}
+      style={{
+        border: `1px dashed ${hexToRgba(color, over ? 0.9 : 0.45)}`,
+        borderRadius: 12, padding: "16px 12px", margin: "6px 0 14px",
+        color: over ? color : "#9FA9C5", fontSize: 13, letterSpacing: "0.05em",
+        cursor: "pointer", textAlign: "center",
+        background: over ? hexToRgba(color, 0.08) : "transparent",
+        transition: "all .2s",
+      }}>
+      {busy ? "✦ enviando..." : label}
+      <input ref={inputRef} type="file" accept={accept} style={{ display: "none" }}
+        onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onFile(f); e.target.value = ""; }} />
+    </div>
+  );
+}
+
+function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, status, upload }) {
   const [active, setActive] = useState(null);
   const [hovered, setHovered] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -241,6 +270,44 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
     interactTimer.current = setTimeout(() => setInteracting(false), 200);
   };
   const camFree = !zoomNode && !placing;
+
+  /* ---------- upload de mídia ---------- */
+  const [upBusy, setUpBusy] = useState(false);
+  const [upMsg, setUpMsg] = useState("");
+  const doUpload = async (file, done) => {
+    if (!upload) return;
+    setUpBusy(true); setUpMsg("");
+    try {
+      const url = await upload(file);
+      done(url, file);
+      setUpMsg("enviado ✦");
+    } catch (e) {
+      setUpMsg("erro: " + (e.message || "falha no envio"));
+    } finally {
+      setUpBusy(false);
+      setTimeout(() => setUpMsg(""), 3500);
+    }
+  };
+
+  /* ---------- trilha sonora do universo ---------- */
+  // música da estrela em foco > música do perfil > silêncio
+  const focusStar = active && active !== "nucleo" ? stars.find((s) => s.id === active) : null;
+  const track = (focusStar && focusStar.musica) || perfil.musica || "";
+  const audioRef = useRef(null);
+  const [soundOn, setSoundOn] = useState(true);
+  const [needsTap, setNeedsTap] = useState(false);
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (!track || !soundOn) { a.pause(); return; }
+    if (a.getAttribute("data-url") !== track) {
+      a.setAttribute("data-url", track);
+      a.src = track;
+    }
+    a.loop = true;
+    a.volume = 0.4;
+    a.play().then(() => setNeedsTap(false)).catch(() => setNeedsTap(true));
+  }, [track, soundOn]);
   const onSkyPointerDown = (e) => {
     if (!camFree) return;
     if (e.target.closest && e.target.closest("button")) return; // não rouba o clique das estrelas
@@ -317,6 +384,24 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
                 <textarea style={{ ...UI.ghostInput(color), minHeight: 70, resize: "vertical" }}
                   value={perfil.bio} placeholder="Sua bio"
                   onChange={(e) => setPerfil({ ...perfil, bio: e.target.value })} />
+                <input
+                  style={UI.ghostInput(color)}
+                  value={perfil.musica || ""}
+                  placeholder="♪ música do universo (link .mp3)"
+                  onChange={(e) => setPerfil({ ...perfil, musica: e.target.value })}
+                />
+                {upload && (
+                  <DropZone color={color} accept="audio/*" busy={upBusy}
+                    label="♪ ou arraste um áudio aqui (mp3, ogg...)"
+                    onFile={(f) => doUpload(f, (url) => setPerfil({ ...perfil, musica: url }))} />
+                )}
+                {perfil.musica && (
+                  <button style={{ ...UI.starText("#FF8E8E"), fontSize: 11 }}
+                    onClick={() => setPerfil({ ...perfil, musica: "" })}>
+                    ─ remover música do universo
+                  </button>
+                )}
+                {upMsg && <p style={{ fontSize: 12, color: "#CBD5FF" }}>{upMsg}</p>}
               </React.Fragment>
             ) : (
               <React.Fragment>
@@ -356,6 +441,31 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
                   onClick={() => updStar(star.id, { links: [...star.links, { titulo: "", url: "" }] })}>
                   ＋ novo satélite
                 </button>
+                {upload && (
+                  <DropZone color={color} accept="image/*" busy={upBusy}
+                    label="◐ arraste uma imagem aqui (ou clique para escolher)"
+                    onFile={(f) => doUpload(f, (url, file) =>
+                      updStar(star.id, { links: [...star.links, { titulo: file.name.replace(/\.[^.]+$/, ""), url }] })
+                    )} />
+                )}
+                <input
+                  style={UI.ghostInput(color)}
+                  value={star.musica || ""}
+                  placeholder="♪ música desta estrela (link .mp3, opcional)"
+                  onChange={(e) => updStar(star.id, { musica: e.target.value })}
+                />
+                {upload && (
+                  <DropZone color={color} accept="audio/*" busy={upBusy}
+                    label="♪ ou arraste um áudio para esta estrela"
+                    onFile={(f) => doUpload(f, (url) => updStar(star.id, { musica: url }))} />
+                )}
+                {star.musica && (
+                  <button style={{ ...UI.starText("#FF8E8E"), fontSize: 11 }}
+                    onClick={() => updStar(star.id, { musica: "" })}>
+                    ─ remover música da estrela
+                  </button>
+                )}
+                {upMsg && <p style={{ fontSize: 12, color: "#CBD5FF" }}>{upMsg}</p>}
                 <div style={{ marginTop: 22, display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
                   <button style={UI.starText(color)} onClick={() => setPlacing({ mode: "move", id: star.id })}>✥ mover no céu</button>
                   <button style={UI.starText(color)} onClick={() => { setLinking(star.id); setHintMsg(""); setActive(null); }}>🔗 ligações</button>
@@ -653,6 +763,36 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
         </button>
       )}
 
+      {/* trilha sonora: player invisível + controles */}
+      <audio ref={audioRef} style={{ display: "none" }} />
+      {track && (
+        needsTap && soundOn ? (
+          <button
+            onClick={() => {
+              const a = audioRef.current;
+              if (a) a.play().then(() => setNeedsTap(false)).catch(() => {});
+            }}
+            style={{
+              ...UI.btn, position: "fixed", left: 16, bottom: 16, zIndex: 20,
+              animation: "pulse 2s ease-in-out infinite",
+            }}>
+            ♪ ativar som do universo
+          </button>
+        ) : (
+          <button
+            onClick={() => setSoundOn(!soundOn)}
+            aria-label={soundOn ? "Silenciar música" : "Tocar música"}
+            style={{
+              ...UI.ghostBtn, position: "fixed", left: 16, bottom: 16, zIndex: 20,
+              background: "rgba(3,5,12,0.85)", width: 40, height: 40, padding: 0,
+              borderRadius: "50%", fontSize: 15,
+              color: soundOn ? "#DCE4FF" : "#5A617A",
+            }}>
+            {soundOn ? "♪" : "∅"}
+          </button>
+        )
+      )}
+
       {renderFocusScene()}
     </div>
   );
@@ -789,6 +929,16 @@ function MyUniverse({ session }) {
   if (row === null) return <ClaimHandle userId={uid} onDone={(r) => setRow(r)} />;
   if (!perfil || !stars) return <LoadingSky texto="acendendo as estrelas..." />;
 
+  // envia arquivo para o Storage do Supabase e devolve a URL pública
+  const uploadFile = async (file) => {
+    if (file.size > 8 * 1024 * 1024) throw new Error("arquivo grande demais (máx 8MB)");
+    const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
+    const path = uid + "/" + Date.now() + "-" + Math.random().toString(36).slice(2, 7) + "." + ext;
+    const { error } = await sb.storage.from("midia").upload(path, file, { contentType: file.type || undefined });
+    if (error) throw new Error(error.message.includes("bucket") ? "configure o Storage (script adicionar-uploads.sql)" : error.message);
+    return sb.storage.from("midia").getPublicUrl(path).data.publicUrl;
+  };
+
   const link = window.location.origin + window.location.pathname + "#/@" + row.handle;
   const headerRight = (
     <React.Fragment>
@@ -802,7 +952,7 @@ function MyUniverse({ session }) {
 
   return (
     <Nebula perfil={perfil} stars={stars} setPerfil={setPerfilState} setStars={setStarsState}
-      readOnly={false} headerRight={headerRight} status={status} />
+      readOnly={false} headerRight={headerRight} status={status} upload={uploadFile} />
   );
 }
 
@@ -875,9 +1025,19 @@ function LocalUniverse() {
     return () => clearTimeout(t);
   }, [perfil, stars]);
 
+  // modo local: converte a imagem em texto (limite pequeno, o navegador não guarda muito)
+  const uploadLocal = (file) =>
+    new Promise((res, rej) => {
+      if (file.size > 1.2 * 1024 * 1024) return rej(new Error("no modo local o limite é 1,2MB"));
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = () => rej(new Error("falha ao ler o arquivo"));
+      r.readAsDataURL(file);
+    });
+
   return (
     <Nebula perfil={perfil} stars={stars} setPerfil={setPerfil} setStars={setStars}
-      readOnly={false} status={status}
+      readOnly={false} status={status} upload={uploadLocal}
       headerRight={<span style={{ fontSize: 11, color: "#F5D98B" }}>modo local — configure o Supabase</span>} />
   );
 }
