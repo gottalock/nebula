@@ -49,6 +49,18 @@ const CORE = { id: "nucleo", x: 50, y: 46 };
 const PALETTE = ["#5EEAD4", "#8B7CF7", "#F5A9E1", "#F5D98B", "#7CC4F7", "#FF8E72"];
 const FX = 50;
 const FY = 42;
+// posição da estrela quando em foco no modo visualização (esquerda da tela)
+const VX = 22;
+const VY = 46;
+
+// detecta o tipo de conteúdo pelo link: imagem, música ou link comum
+const detectKind = (url) => {
+  const u = (url || "").toLowerCase();
+  if (/\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/.test(u)) return "image";
+  if (/(spotify\.com|music\.apple|deezer\.com|soundcloud\.com|music\.youtube|youtu\.?be)/.test(u)) return "music";
+  return "link";
+};
+const kindIcon = { image: "◐", music: "♪", link: "↗" };
 
 const defaultData = (nome) => ({
   perfil: {
@@ -179,10 +191,13 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
   const allNodes = [{ ...CORE, label: perfil.nome, color: "#8B7CF7", core: true }, ...stars];
   const nodeById = (id) => allNodes.find((n) => n.id === id);
   const zoomNode = active && !placing ? nodeById(active) : null;
+  const inEdit = editing && !readOnly;
+  const TX = inEdit ? FX : VX; // edição: estrela centralizada / visualização: à esquerda
+  const TY = inEdit ? FY : VY;
   const worldStyle = {
     position: "fixed", inset: 0, zIndex: 5,
     transformOrigin: zoomNode ? `${zoomNode.x}% ${zoomNode.y}%` : "50% 50%",
-    transform: zoomNode ? `translate(${FX - zoomNode.x}%, ${FY - zoomNode.y}%) scale(2.1)` : "none",
+    transform: zoomNode ? `translate(${TX - zoomNode.x}%, ${TY - zoomNode.y}%) scale(2.1)` : "none",
     transition: "transform .8s cubic-bezier(.22,.9,.28,1), transform-origin .8s cubic-bezier(.22,.9,.28,1)",
   };
 
@@ -193,15 +208,6 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
     const color = node.color;
     const isCore = active === "nucleo";
     const star = isCore ? null : starById(active);
-    const orbitItems = isCore ? [] : star.links;
-    const R = 30;
-    const orbitPos = (i, n) => {
-      const ang = (-90 + (i * 360) / Math.max(n, 1)) * (Math.PI / 180);
-      return {
-        left: `calc(${FX}% + ${(Math.cos(ang) * R).toFixed(2)}vmin)`,
-        top: `calc(${FY}% + ${(Math.sin(ang) * R).toFixed(2)}vmin)`,
-      };
-    };
 
     if (editing && !readOnly) {
       return (
@@ -275,68 +281,106 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
 
     return (
       <div style={{ position: "fixed", inset: 0, zIndex: 30, animation: "fadeIn .6s ease" }}>
+        {/* fundo clicável para voltar */}
         <div onClick={() => setActive(null)} style={{ position: "absolute", inset: 0, cursor: "zoom-out" }} />
-        {orbitItems.length > 0 && (
-          <div style={{
-            position: "fixed", left: `${FX}%`, top: `${FY}%`, transform: "translate(-50%,-50%)",
-            width: `${R * 2}vmin`, height: `${R * 2}vmin`, borderRadius: "50%",
-            border: `1px dashed ${hexToRgba(color, 0.25)}`, animation: "spin 90s linear infinite", pointerEvents: "none",
-          }} />
-        )}
+
+        {/* linha de luz ligando a estrela ao conteúdo */}
         <div style={{
-          position: "fixed", left: `${FX}%`, top: `calc(${FY}% - ${isCore ? 15 : 14}vmin)`,
-          transform: "translate(-50%,-100%)", textAlign: "center", pointerEvents: "none",
-          animation: "riseIn .8s ease", maxWidth: "86vw",
+          position: "fixed", top: `${VY}%`, left: `calc(${VX}% + 7vmin)`, width: "9vmin", height: 1,
+          background: `linear-gradient(90deg, ${hexToRgba(color, 0.9)}, transparent)`,
+          boxShadow: `0 0 8px ${hexToRgba(color, 0.5)}`, pointerEvents: "none", animation: "fadeIn 1s ease",
+        }} />
+
+        {/* conteúdo flutuando à direita, sem caixa */}
+        <div style={{
+          position: "fixed",
+          left: `calc(${VX}% + 17vmin)`,
+          right: "4vw",
+          top: "50%",
+          transform: "translateY(-50%)",
+          maxHeight: "72vh",
+          maxWidth: 520,
+          overflowY: "auto",
+          zIndex: 31,
+          animation: "riseSide .7s ease",
+          paddingRight: 6,
         }}>
           <h2 style={{
-            ...UI.display, fontSize: "clamp(20px, 5vmin, 34px)", fontWeight: 800, margin: 0, color: "#fff",
-            textShadow: `0 0 24px ${hexToRgba(color, 0.8)}, 0 0 60px ${hexToRgba(color, 0.4)}`, letterSpacing: "0.06em",
+            ...UI.display, fontSize: "clamp(20px, 4.6vmin, 34px)", fontWeight: 800,
+            margin: "0 0 4px", color: "#fff", letterSpacing: "0.06em",
+            textShadow: `0 0 24px ${hexToRgba(color, 0.8)}, 0 0 60px ${hexToRgba(color, 0.4)}`,
           }}>
             {isCore ? perfil.nome : star.label}
           </h2>
           {isCore && (
-            <p style={{ margin: "6px 0 0", color: hexToRgba(color, 0.95), fontSize: 14, letterSpacing: "0.1em" }}>
+            <p style={{ margin: "0 0 10px", color: hexToRgba(color, 0.95), fontSize: 14, letterSpacing: "0.1em" }}>
               {perfil.handle}
             </p>
           )}
-        </div>
-        <div style={{
-          position: "fixed", left: `${FX}%`, top: `calc(${FY}% + ${isCore ? 13 : 12}vmin)`,
-          transform: "translateX(-50%)", textAlign: "center", maxWidth: "min(70vw, 420px)",
-          pointerEvents: "none", animation: "riseIn 1s ease",
-        }}>
-          <p style={{ margin: 0, lineHeight: 1.7, color: "#CFCBEF", fontSize: 15, textShadow: "0 0 12px rgba(5,5,16,1), 0 0 24px rgba(5,5,16,1)" }}>
-            {isCore ? perfil.bio : star.desc}
-          </p>
+          {(isCore ? perfil.bio : star.desc) && (
+            <p style={{
+              margin: "6px 0 18px", lineHeight: 1.7, color: "#CFCBEF", fontSize: 15,
+              textShadow: "0 0 12px rgba(5,5,16,1), 0 0 24px rgba(5,5,16,1)",
+            }}>
+              {isCore ? perfil.bio : star.desc}
+            </p>
+          )}
           {!isCore && star.links.length === 0 && !star.desc && !readOnly && (
-            <p style={{ color: "#B9B3E8", fontSize: 13, marginTop: 8 }}>
+            <p style={{ color: "#B9B3E8", fontSize: 13 }}>
               estrela silenciosa — toque em "✎ editar" para dar vida a ela
             </p>
           )}
+
+          {/* itens: imagem vira imagem, música ganha ♪, resto vira link */}
+          {!isCore && star.links.map((l, i) => {
+            const kind = detectKind(l.url);
+            if (kind === "image") {
+              return (
+                <a key={i} href={l.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                  style={{ display: "block", margin: "0 0 16px", textDecoration: "none", animation: `riseItem ${0.5 + i * 0.12}s ease` }}>
+                  <img src={l.url} alt={l.titulo || "imagem"}
+                    onError={(e) => { e.target.style.display = "none"; }}
+                    style={{
+                      maxWidth: "100%", maxHeight: "38vh", borderRadius: 14, display: "block",
+                      boxShadow: `0 0 24px ${hexToRgba(color, 0.35)}, 0 8px 30px rgba(0,0,0,0.5)`,
+                    }} />
+                  {l.titulo && (
+                    <span style={{
+                      display: "block", marginTop: 6, fontSize: 13, color: "#B9B3E8",
+                      fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0.06em",
+                      textShadow: "0 0 10px rgba(5,5,16,1)",
+                    }}>
+                      ◐ {l.titulo}
+                    </span>
+                  )}
+                </a>
+              );
+            }
+            return (
+              <a key={i} href={l.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12, padding: "11px 2px",
+                  textDecoration: "none", animation: `riseItem ${0.5 + i * 0.12}s ease`,
+                  borderBottom: `1px solid ${hexToRgba(color, 0.14)}`,
+                }}>
+                <span style={{
+                  flexShrink: 0, width: 9, height: 9, borderRadius: "50%",
+                  background: `radial-gradient(circle, #fff 25%, ${color} 90%)`,
+                  boxShadow: `0 0 12px 3px ${hexToRgba(color, 0.55)}`, animation: "pulse 3s ease-in-out infinite",
+                }} />
+                <span style={{
+                  color: "#EDEDF7", fontFamily: "'Space Grotesk', sans-serif", fontSize: 15,
+                  letterSpacing: "0.05em", textShadow: `0 0 10px rgba(5,5,16,1), 0 0 18px ${hexToRgba(color, 0.4)}`,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {l.titulo || l.url}
+                </span>
+                <span style={{ marginLeft: "auto", color, fontSize: 14, flexShrink: 0 }}>{kindIcon[kind]}</span>
+              </a>
+            );
+          })}
         </div>
-        {orbitItems.map((l, i) => {
-          const pos = orbitPos(i, orbitItems.length);
-          return (
-            <a key={i} href={l.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-              style={{
-                position: "fixed", ...pos, transform: "translate(-50%,-50%)",
-                textDecoration: "none", textAlign: "center", zIndex: 31,
-                animation: `riseIn ${0.6 + i * 0.15}s ease`,
-              }}>
-              <span style={{
-                display: "block", width: 11, height: 11, margin: "0 auto 7px", borderRadius: "50%",
-                background: `radial-gradient(circle, #fff 25%, ${color} 90%)`,
-                boxShadow: `0 0 14px 4px ${hexToRgba(color, 0.55)}`, animation: "pulse 3s ease-in-out infinite",
-              }} />
-              <span style={{
-                color: "#EDEDF7", fontFamily: "'Space Grotesk', sans-serif", fontSize: 13, letterSpacing: "0.08em",
-                textShadow: `0 0 10px rgba(5,5,16,1), 0 0 18px ${hexToRgba(color, 0.5)}`, whiteSpace: "nowrap",
-              }}>
-                {l.titulo || l.url} <span style={{ color, fontSize: 11 }}>↗</span>
-              </span>
-            </a>
-          );
-        })}
+
         <p style={{
           position: "fixed", bottom: 18, left: "50%", transform: "translateX(-50%)",
           fontSize: 12, color: "rgba(185,179,232,0.6)", letterSpacing: "0.08em", pointerEvents: "none", margin: 0,
@@ -400,21 +444,25 @@ function Nebula({ perfil, stars, setPerfil, setStars, readOnly, headerRight, sta
                 position: "absolute", left: `${n.x}%`, top: `${n.y}%`,
                 transform: "translate(-50%,-50%)", width: size, height: size,
                 borderRadius: "50%", border: "none", cursor: "pointer", zIndex: 10,
-                background: "transparent", display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center", outline: "none",
+                background: "transparent", outline: "none",
                 opacity: active && !isActive ? 0.2 : 1,
                 transition: "opacity .6s ease, left .3s ease, top .3s ease",
               }}>
+              {/* a bolinha fica EXATAMENTE no centro do botão = ponta da linha */}
               <span style={{
-                display: "block", width: n.core ? 26 : 14, height: n.core ? 26 : 14, borderRadius: "50%",
+                position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)",
+                width: n.core ? 26 : 14, height: n.core ? 26 : 14, borderRadius: "50%",
                 background: n.core ? "radial-gradient(circle, #fff 20%, #8B7CF7 70%)" : `radial-gradient(circle, #fff 30%, ${n.color} 90%)`,
                 boxShadow: isActive || isHover ? `0 0 26px 10px ${hexToRgba(n.color, 0.65)}`
                   : n.core ? "0 0 30px 10px rgba(139,124,247,0.5)" : `0 0 12px 3px ${hexToRgba(n.color, 0.35)}`,
                 animation: n.core ? "pulse 3.5s ease-in-out infinite" : undefined,
                 transition: "box-shadow .25s",
               }} />
+              {/* rótulo flutuante abaixo, sem deslocar a bolinha */}
               <span style={{
-                marginTop: 8, fontSize: n.core ? 13 : 11, letterSpacing: "0.14em", textTransform: "uppercase",
+                position: "absolute", left: "50%", top: `calc(50% + ${n.core ? 22 : 15}px)`,
+                transform: "translateX(-50%)",
+                fontSize: n.core ? 13 : 11, letterSpacing: "0.14em", textTransform: "uppercase",
                 color: isHover ? n.color : "#B9B3E8",
                 fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500, whiteSpace: "nowrap",
                 transition: "color .25s, opacity .4s", textShadow: "0 0 8px rgba(5,5,16,0.9)",
@@ -712,6 +760,8 @@ const rootStyles = document.createElement("style");
 rootStyles.textContent = `
   @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
   @keyframes riseIn { from { opacity: 0; transform: translate(-50%, calc(-50% + 14px)) } to { opacity: 1 } }
+  @keyframes riseSide { from { opacity: 0; transform: translateY(calc(-50% + 18px)) } to { opacity: 1 } }
+  @keyframes riseItem { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
   @keyframes pulse { 0%,100% { opacity: .6 } 50% { opacity: 1 } }
   @keyframes spin { from { transform: translate(-50%,-50%) rotate(0deg) } to { transform: translate(-50%,-50%) rotate(360deg) } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
